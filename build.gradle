@@ -1,6 +1,10 @@
 // Для создания *.exe
 import edu.sc.seis.launch4j.tasks.Launch4jLibraryTask
 
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.Files
+
 plugins {
     id 'java' // основные таски для сборки проекта jar
     id 'idea'
@@ -15,8 +19,6 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.google.guava:guava:29.0-jre'
-
     testImplementation 'junit:junit:4.13'
 }
 
@@ -74,15 +76,6 @@ task packageToJarAndLibs(type: Jar) {
 
 packageToJarAndLibs.dependsOn(build, copyDependencies)
 
-// Удаление скопированного файла jar проекта в папку libs
-task cleanTempJar(type: Delete) {
-    delete fileTree("$buildDir/bin/libs").matching {
-        include project.ext.name + ".jar"
-    }
-}
-
-cleanTempJar.dependsOn copyDependencies
-
 // Копирование целевого Jar в папку bin
 task copyJarToBin(type: Copy) {
     from file("$buildDir/libs/" + (project.ext.name as String) + ".jar")
@@ -113,6 +106,7 @@ task packageWithExe(type: Launch4jLibraryTask) {
     jvmOptions = opts
     // icon = "${projectDir}/src/main/resources/images/icon.ico"
     jar = "../libs/" + (project.ext.name as String) + ".jar"
+
 }
 
 packageWithExe.dependsOn copyJarToBin
@@ -142,7 +136,14 @@ task packageWithScripts(type: CreateStartScripts) {
 packageWithScripts.dependsOn copyJarToBin
 
 // Выполнение всех стадий для упаковки приложения в исполняемые файлы
-task packageAll {}
+task packageAll {
+    doLast {
+        Path path = Paths.get("$buildDir/bin/libs/" + (project.ext.name as String) + '.jar')
+        if (Files.exists(path)) {
+            Files.delete(path)
+        }
+    }
+}
 
 packageAll.dependsOn(packageWithExe, packageWithScripts)
 
